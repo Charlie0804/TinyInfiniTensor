@@ -39,7 +39,11 @@ namespace infini
         // TODO：返回经过 clip 操作后的 shape
         // REF: https://onnx.ai/onnx/operators/onnx__Clip.html#clip-13
         // =================================== 作业 ===================================
-        return std::nullopt;
+        // [0]代表第一个输入张量
+        // clip操作不会改变输入张量的shape，只会改变输入张量的值
+        // clip : output=min(max(input,min_value),max_value) --- 截断操作
+        const auto  dims = inputs[0]->getDims();
+        return {{dims}};
     }
 
     std::string ClipObj::toString() const
@@ -66,16 +70,22 @@ namespace infini
         // REF_FILE: src/core/operator.cc
         // REF: https://onnx.ai/onnx/operators/onnx__Cast.html#cast-21
         // =================================== 作业 ===================================
-        return {};
+        auto output_dtype = getOutputDataType();
+        return vector(numOutputs(),output_dtype);
     }
 
+    // optional<T> 是 C++17 引入的一个模板类，用于表示一个可能存在的值（类似于 std::optional
     optional<vector<Shape>> CastObj::inferShape(const TensorVec &inputs)
     {
         // =================================== 作业 ===================================
         // TODO：返回经过 cast 操作后的 shape
         // REF: https://onnx.ai/onnx/operators/onnx__Cast.html#cast-21
         // =================================== 作业 ===================================
-        return std::nullopt;
+        const auto dims = inputs[0]->getDims();
+        // {{}} 是一种嵌套初始化语法，用于正确构造 optional<vector<Shape>> 对象：
+        // 内层的 {} 构造 vector<Shape>。
+        // 外层的 {} 构造 optional<vector<Shape>>。
+        return {{dims}};
     }
 
     std::string CastObj::toString() const

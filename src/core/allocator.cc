@@ -32,6 +32,24 @@ namespace infini
         // =================================== 作业 ===================================
         // TODO: 设计一个算法来分配内存，返回起始地址偏移量
         // =================================== 作业 ===================================
+        
+        // 存储分配的内存块的起始地址
+        // 取巧了，自定义了一篇大内存，应该计算后动态申请的
+        size_t retAddr = this->peak;
+        for (auto it = free_buffers_block_.begin(); it != free_buffers_block_.end(); it++) {
+            if (it->second >= size) { 
+                retAddr = it->first;
+                //
+                size_t blockSize = it->second - size;
+                this->free_buffers_block_.erase(it);
+                if (blockSize > 0) {
+                    free_buffers_block_[retAddr + size] = blockSize;
+                }
+                this->used += size;
+                this->peak = std::max(this->used, this->peak);
+                return retAddr;
+            }
+        }
 
         return 0;
     }
@@ -44,6 +62,38 @@ namespace infini
         // =================================== 作业 ===================================
         // TODO: 设计一个算法来回收内存
         // =================================== 作业 ===================================
+        size_t retAddr = addr;
+        size_t tailAddr = addr + size;
+        
+    
+        // 合并右侧空闲块
+        auto mergeRight = [&]() {
+            auto it = free_buffers_block_.lower_bound(addr);
+            while (it != free_buffers_block_.end() && it->first <= tailAddr) {
+                tailAddr = it->first + it->second;
+                this->used += it->second;
+                it = free_buffers_block_.erase(it);
+            }
+        };
+
+        // 合并左侧空闲块
+        auto mergeLeft = [&]() {
+            auto it = free_buffers_block_.lower_bound(addr);
+            if (it != free_buffers_block_.begin()) {
+                auto prevIt = std::prev(it);
+                if (prevIt->first + prevIt->second >= addr) {
+                    retAddr = prevIt->first;
+                    this->used -= prevIt->second;
+                    free_buffers_block_.erase(prevIt);
+                }
+            }
+        };
+
+        mergeRight();
+        mergeLeft();
+
+        free_buffers_block_[retAddr] = tailAddr - retAddr;
+        this->used -= tailAddr - retAddr;
     }
 
     void *Allocator::getPtr()
@@ -56,8 +106,8 @@ namespace infini
         return this->ptr;
     }
 
-    size_t Allocator::getAlignedSize(size_t size)
-    {
+    // 内存对齐
+    size_t Allocator::getAlignedSize(size_t size) {
         return ((size - 1) / this->alignment + 1) * this->alignment;
     }
 

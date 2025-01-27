@@ -16,6 +16,7 @@ namespace infini
         OpType type;
         TensorVec inputs;
         TensorVec outputs;
+        // 前驱节点和后继节点
         vector<WRef<OperatorObj>> predecessors;
         vector<WRef<OperatorObj>> successors;
 
